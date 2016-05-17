@@ -2,7 +2,8 @@ import pickle
 
 from PyQt5.QtWidgets import QMainWindow, QWidget, QStackedWidget, QLabel, QLineEdit, QSpacerItem, QPushButton, \
      QSizePolicy, QHBoxLayout, QVBoxLayout, QCheckBox, QMenu, QAction, QApplication
-from PyQt5.QtGui import QFont, QCursor
+from PyQt5.QtGui import QFont, QCursor, QDesktopServices
+from PyQt5.QtCore import QUrl, Qt
 
 from os import getcwd
 
@@ -70,6 +71,9 @@ class Posdit(QMainWindow):
         self.settings_widget.settings_disable_checkbox.setChecked(self.status_widget.status_disable_checkbox
                                                                   .isChecked())
 
+    def link(self, link_string):
+        QDesktopServices.openUrl(QUrl(link_string))
+
     @staticmethod
     def load():
         """
@@ -129,9 +133,16 @@ class StatusWindow(QWidget):
 
         self.status_disable_checkbox = QCheckBox("Disable")
         self.status_disable_checkbox.stateChanged.connect(self.toggle_status)
+
+        link = "https://github.com/kevin-lam/Posdit"
+        help_link = QLabel('<a href="{}">Help</a>'.format(link))
+        help_link.setAlignment(Qt.AlignRight)
+        help_link.linkActivated.connect(lambda: self.parent.link(link))
+
         status_bottom_container = QHBoxLayout()
-        status_bottom_container.setContentsMargins(10, 0, 0, 0)
+        status_bottom_container.setContentsMargins(10, 0, 20, 0)
         status_bottom_container.addWidget(self.status_disable_checkbox)
+        status_bottom_container.addWidget(help_link)
 
         status_layout = QVBoxLayout()
         status_layout.addLayout(info_container)
@@ -207,9 +218,15 @@ class SettingsWindow(QWidget):
 
         self.settings_disable_checkbox = QCheckBox("Disable")
 
+        link = "https://github.com/kevin-lam/Posdit"
+        help_link = QLabel('<a href="{}">Help</a>'.format(link))
+        help_link.setAlignment(Qt.AlignRight)
+        help_link.linkActivated.connect(lambda: self.parent.link(link))
+
         settings_bottom_container = QHBoxLayout()
         settings_bottom_container.addWidget(self.settings_disable_checkbox)
-        settings_bottom_container.setContentsMargins(10, 0, 0, 0)
+        settings_bottom_container.addWidget(help_link)
+        settings_bottom_container.setContentsMargins(10, 0, 20, 0)
 
         settings_layout = QVBoxLayout()
         settings_layout.addLayout(email_container)
