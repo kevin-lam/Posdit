@@ -162,7 +162,8 @@ class StatusWindow(QWidget):
         else:
             self.parent.worker.disable = False
             self.log.enabled()
-            self.set_status("Up", "green")
+            if self.parent.settings_widget.email_edit.text():
+                self.set_status("Up", "green")
 
     def set_status(self, condition, color):
         """
@@ -191,25 +192,25 @@ class SettingsWindow(QWidget):
     def set_up_settings_layout(self):
         email_label = QLabel("Email: ")
 
-        email_edit = QLineEdit()
-        email_edit.setMaximumHeight(20)
-        email_edit.setText(self.email)
+        self.email_edit = QLineEdit()
+        self.email_edit.setMaximumHeight(20)
+        self.email_edit.setText(self.email)
 
         email_spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.request_table = RequestTable(self.email, self.requests, parent=self.parent)
-        email_edit.setText(self.request_table.email)
+        self.email_edit.setText(self.request_table.email)
 
         done = QPushButton("Done")
         done.setMaximumHeight(20)
         done.clicked.connect(self.parent.switch_layout_status)
-        done.clicked.connect(lambda: self.finished(email_edit.text(), self.request_table.requests,
+        done.clicked.connect(lambda: self.finished(self.email_edit.text(), self.request_table.requests,
                                                    self.request_table.inserted, self.request_table.removed,
                                                    self.request_table))
 
         email_container = QHBoxLayout()
         email_container.addWidget(email_label)
-        email_container.addWidget(email_edit)
+        email_container.addWidget(self.email_edit)
         email_container.addItem(email_spacer)
         email_container.addWidget(done)
 
