@@ -2,6 +2,7 @@ import requests
 import praw
 import time
 import smtplib
+import re
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
@@ -40,8 +41,16 @@ class Worker(QThread):
     connectionerror_signal = pyqtSignal()
     # Signal to log when subreddit does not exist.
     subreddit_noexist_signal = pyqtSignal(str)
-    # Signal to change Posdit status condition to up or down.
+    # Signal to log when failing to get requests from Reddit and times out.
+    timeout_signal = pyqtSignal()
+    # Signal to log http error
+    httperror_signal = pyqtSignal()
+    # Signal to change Posttid status condition to up or down.
     status_condition_signal = pyqtSignal(str, str)
+
+    test_inside_loop = pyqtSignal()
+
+    test_query_requests = pyqtSignal(str)
 
     def __init__(self):
         super(Worker, self).__init__()
@@ -58,60 +67,75 @@ class Worker(QThread):
             self.get_requests()
         else:
             self.missing_email_signal.emit()
+            self.status_condition_signal.emit("Down", "red")
 
     def get_requests(self):
         """
         Retrieve the requests from Reddit.
         """
 
-        # Stalls in this loop when disable/enable checkbox is selected
-        while self.disable:
-            pass
+        while True:
 
-        connecting = run_once(self.connect)
+            while self.disable:
+                time.sleep(1)
 
-        try:
-            # Go through each of the requests
-            for key, (keyword, subreddit, listing) in self.requests.iteritems():
-                keyword = keyword.lower()
-                subreddit = subreddit.lower()
-                listing = listing.lower()
+            connecting = run_once(self.connect)
 
-                reddit = praw.Reddit(user_agent="desktop:posdit:v1.0")
-                subreddit_addr = reddit.get_subreddit(subreddit)
-                request_method = getattr(subreddit_addr, 'get_{}'.format(listing))
+            try:
+                for key, (keyword, subreddit, listing) in self.requests.iteritems():
 
-                for post in request_method():
-                    # Connecting/Reconnecting log message
-                    connecting(self.initialize, self.reconnect)
+                    reddit = praw.Reddit(user_agent="desktop:posttid:v1.0")
+                    subreddit_addr = reddit.get_subreddit(subreddit)
+                    request_method = getattr(subreddit_addr, 'get_{}'.format(listing.lower()))
 
-                    # Check if the post has been checked already. If not, send email notification and add it to the
-                    # checked list.
-                    if post.id not in self.previous_posts:
-                        if keyword in post.title.lower():
-                            self._send_email(post.title, keyword, subreddit, listing, post.url, post.permalink)
-                            self.previous_posts.append(post.id)
-                            self.request_signal.emit(post.title)
+                    self.test_query_requests.emit(keyword)
 
-        # No internet error
-        except requests.ConnectionError:
-            self.connectionerror_signal.emit()
-            self.status_condition_signal.emit("Down", "red")
-            self.reconnect = True
-            connecting.has_run = False
+                    for post in request_method():
+                        # Connecting/Reconnecting log message
+                        #connecting(self.initialize, self.reconnect)
 
-        # No such subreddit error
-        except praw.errors.InvalidSubreddit:
-            self.subreddit_noexist_signal.emit(subreddit)
-            self.status_condition_signal.emit("Down", "red")
-            self.reconnect = True
-            return
+                        self.test_inside_loop.emit()
 
-        else:
-            self.status_condition_signal.emit("Up", "green")
+                        phrases = keyword.split()
+                        for index, term in enumerate(phrases):
+                            phrases[index] = re.sub('[^0-9A-Za-z%]', '', term)
+                            phrases[index] = re.sub('(.)', '\\1\s*\W?', phrases[index])
 
-        self.initialize = False
-        self._start_timer()
+
+                        # Check if the post has been checked already. If not, send email notification and add it to the
+                        # checked list.
+                        for adjusted in phrases:
+                            if post.id not in self.previous_posts and re.search(adjusted, post.title, re.IGNORECASE):
+                                self._send_email(post.title, keyword, subreddit, listing, post.url, post.permalink)
+                                self.previous_posts.append(post.id)
+                                self.request_signal.emit(post.title)
+
+            # No internet error
+            except requests.ConnectionError:
+                self.connectionerror_signal.emit()
+                self.status_condition_signal.emit("Down", "red")
+                self.reconnect = True
+                connecting.has_run = False
+
+            # No such subreddit error
+            except praw.errors.InvalidSubreddit:
+                self.subreddit_noexist_signal.emit(subreddit)
+                self.status_condition_signal.emit("Down", "red")
+                self.reconnect = True
+                return
+
+            # Fail to get requests and time out
+            except requests.exceptions.ReadTimeout:
+                self.timeout_signal.emit()
+
+            except praw.errors.HTTPException:
+                self.httperror_signal.emit()
+
+            else:
+                self.status_condition_signal.emit("Up", "green")
+
+            self.initialize = False
+            time.sleep(60)
 
     def _send_email(self, subject, keyword, subreddit, listing, link, reddit_link):
         """
@@ -127,7 +151,7 @@ class Worker(QThread):
         msg['From'] = 'posditsmtp@gmail.com'
         msg['To'] = self.email
         msg['Subject'] = subject
-        body = "{0} - Keyword: {1} | Subreddit: {2} | Listing: {3}\n <br />Reddit Link: {4} <br />Link: {5}"\
+        body = u"{0} - Keyword: {1} | Subreddit: {2} | Listing: {3}\n <br />Reddit Link: {4} <br />Link: {5}"\
             .format(time.ctime(), keyword, subreddit, listing, reddit_link, link)
         msg.attach(MIMEText(body, 'html'))
         text = msg.as_string()
@@ -136,15 +160,11 @@ class Worker(QThread):
         server.ehlo()
         server.starttls()
         server.login("posditsmtp", "posditpassword")
-        server.sendmail('posditsmtp@gmail.com', self.email, text)
+        try:
+            server.sendmail('posditsmtp@gmail.com', self.email, text)
+        except smtplib.SMTPAuthenticationError:
+            pass
         server.close()
-
-    def _start_timer(self):
-        """
-        Starts the wait timer to run the get requests every minute.
-        """
-        time.sleep(60)
-        self.get_requests()
 
     def set_values(self, new_email, new_requests):
         """

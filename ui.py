@@ -12,13 +12,13 @@ from log import LogViewer
 from threads import Worker
 
 
-class Posdit(QMainWindow):
+class Posttid(QMainWindow):
     """
     The main application window and functions which apply to all windows.
     """
 
     def __init__(self):
-        super(Posdit, self).__init__()
+        super(Posttid, self).__init__()
 
         # Set up the main window ui including parameters such as window size and global font
         self.set_up_window()
@@ -44,12 +44,19 @@ class Posdit(QMainWindow):
         self.worker.connectionerror_signal.connect(self.log.no_connection)
         self.worker.subreddit_noexist_signal.connect(self.log.subreddit_noexists)
         self.worker.status_condition_signal.connect(self.status_widget.set_status)
+        self.worker.timeout_signal.connect(self.log.timeout)
+        self.worker.httperror_signal.connect(self.log.http)
+        self.worker.test_inside_loop.connect(self.log.inside_loop)
+        self.worker.test_query_requests.connect(self.log.query_requests)
         self.worker.start()
+
+        # Stop the worker thread when accessing the settings window
+        self.status_widget.settings.clicked.connect(self.worker.terminate)
 
     def set_up_window(self):
         """ Defines the features for the status window """
 
-        self.setWindowTitle("Posdit")
+        self.setWindowTitle("Posttid")
 
         font = QFont()
         font.setPointSize(10)
@@ -111,16 +118,16 @@ class StatusWindow(QWidget):
 
         info_spacer = QSpacerItem(50, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        settings = QPushButton("Settings")
-        settings.clicked.connect(self.parent.switch_layout_settings)
-        settings.setMaximumHeight(20)
+        self.settings = QPushButton("Settings")
+        self.settings.clicked.connect(self.parent.switch_layout_settings)
+        self.settings.setMaximumHeight(20)
 
         info_container = QHBoxLayout()
         info_container.setContentsMargins(20, 0, 0, 0)
         info_container.addWidget(status_label)
         info_container.addWidget(self.status_condition)
         info_container.addItem(info_spacer)
-        info_container.addWidget(settings)
+        info_container.addWidget(self.settings)
 
         requests = self.parent.settings_widget.request_table.requests
         self.log = LogViewer()
@@ -134,7 +141,7 @@ class StatusWindow(QWidget):
         self.status_disable_checkbox = QCheckBox("Disable")
         self.status_disable_checkbox.stateChanged.connect(self.toggle_status)
 
-        link = "https://github.com/kevin-lam/Posdit"
+        link = "https://github.com/kevin-lam/Posttid"
         help_link = QLabel('<a href="{}">Help</a>'.format(link))
         help_link.setAlignment(Qt.AlignRight)
         help_link.linkActivated.connect(lambda: self.parent.link(link))
@@ -208,6 +215,7 @@ class SettingsWindow(QWidget):
                                                    self.request_table.inserted, self.request_table.removed,
                                                    self.request_table))
 
+
         email_container = QHBoxLayout()
         email_container.addWidget(email_label)
         email_container.addWidget(self.email_edit)
@@ -219,7 +227,7 @@ class SettingsWindow(QWidget):
 
         self.settings_disable_checkbox = QCheckBox("Disable")
 
-        link = "https://github.com/kevin-lam/Posdit"
+        link = "https://github.com/kevin-lam/Posttid"
         help_link = QLabel('<a href="{}">Help</a>'.format(link))
         help_link.setAlignment(Qt.AlignRight)
         help_link.linkActivated.connect(lambda: self.parent.link(link))
