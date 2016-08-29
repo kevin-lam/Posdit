@@ -1,17 +1,17 @@
-# Posdit
+# Posttid
 
-Posdit is a program that takes the user's requests and constantly queries from the online bulletin board system, Reddit. With Posdit, individuals can be notified when posts on Reddit are created with their desired topic.
+Posttid is a program that takes the user's requests and constantly queries from the online bulletin board system, Reddit. With Posttid, individuals can be notified when posts on Reddit are created with their desired topic.
 
 ## How to run
 
-Posdit was designed to run on Linux systems. Although running Posdit on Mac OSX can be possible, it has not been tested.
+Posttid was designed to run on Linux systems. Although running Posdit on Mac OSX can be possible, it has not been tested.
 
 [Praw](https://praw.readthedocs.io/en/stable/), [Pyqt5](https://www.riverbankcomputing.com/software/pyqt/download5), and [Python-2.7.x](https://www.python.org/downloads/) are required for Posdit to run correctly.
 
     apt-get install python-pyqt5
     pip install praw
-    git clone https://github.com/kevin-lam/Posdit.git
-    cd Posdit
+    git clone https://github.com/kevin-lam/Posttid.git
+    cd Posttid
     ./main.py
 
 ## How to use
@@ -26,7 +26,7 @@ Posdit was designed to run on Linux systems. Although running Posdit on Mac OSX 
 
 Copyright (C) 2016  Kevin Lam
 
-Posdit is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+Posttid is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
