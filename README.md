@@ -4,9 +4,9 @@ Posttid is a program that takes the user's requests and constantly queries from 
 
 ## How to run
 
-Posttid was designed to run on Linux systems. Although running Posdit on Mac OSX can be possible, it has not been tested.
+Posttid was designed to run on Linux systems. Although running Posttid on Mac OSX can be possible, it has not been tested.
 
-[Praw](https://praw.readthedocs.io/en/stable/), [Pyqt5](https://www.riverbankcomputing.com/software/pyqt/download5), and [Python-2.7.x](https://www.python.org/downloads/) are required for Posdit to run correctly.
+[Praw](https://praw.readthedocs.io/en/stable/), [Pyqt5](https://www.riverbankcomputing.com/software/pyqt/download5), and [Python-2.7.x](https://www.python.org/downloads/) are required for Posttid to run correctly.
 
     apt-get install python-pyqt5
     pip install praw
